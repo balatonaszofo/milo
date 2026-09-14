@@ -1,0 +1,174 @@
+<div id="pi-assembly-3d">
+  <div class="viz-row">
+    <span>Raspberry Pi Zero 2 W</span>
+    <span class="text-small text-muted">Electronics only · simplified geometry</span>
+  </div>
+  <div class="viz-controls" aria-label="Assembly steps">
+    <button type="button" class="btn" data-step="0" aria-pressed="true">1 · Parts</button>
+    <button type="button" class="btn" data-step="1" aria-pressed="false">2 · Insert microSD</button>
+    <button type="button" class="btn" data-step="2" aria-pressed="false">3 · Connect power</button>
+  </div>
+  <div class="pi-stage" role="img" aria-label="Rotatable three-dimensional model of a Raspberry Pi Zero 2 W, microSD card, and micro-USB power cable. The card inserts into the left edge; power connects to PWR IN on the front right.">
+    <canvas aria-hidden="true"></canvas>
+    <div class="pi-labels" aria-hidden="true"></div>
+  </div>
+  <div class="viz-row">
+    <span class="text-small text-muted">Drag to rotate · scroll to zoom</span>
+    <button type="button" class="btn btn-ghost" data-view="top">Top view</button>
+    <button type="button" class="btn btn-ghost" data-view="angle">Angled view</button>
+  </div>
+  <div class="text-small" data-detail aria-live="polite">Pi board + prepared microSD + 5 V / 2.5 A micro-USB power supply.</div>
+  <span class="sr-only">Select the assembly steps to see the card slide into its socket and the power plug connect. Prepare the card with Raspberry Pi OS and Wi-Fi settings before insertion. Connect the power supply to the wall last.</span>
+</div>
+<style>
+#pi-assembly-3d .pi-stage { position:relative; width:100%; height:430px; margin:12px 0; }
+#pi-assembly-3d canvas { display:block; width:100%; height:100%; touch-action:none; cursor:grab; }
+#pi-assembly-3d .pi-labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+#pi-assembly-3d .pi-label { position:absolute; color:var(--foreground); background:var(--background); padding:2px 5px; white-space:nowrap; transform:translate(-50%,-50%); }
+#pi-assembly-3d [data-detail] { margin-top:10px; }
+@media(max-width:480px) { #pi-assembly-3d .pi-stage { height:350px; } }
+</style>
+<script>
+(async function() {
+  const root=document.getElementById('pi-assembly-3d');
+  const stage=root.querySelector('.pi-stage'), canvas=root.querySelector('canvas');
+  const layer=root.querySelector('.pi-labels'), detail=root.querySelector('[data-detail]');
+  let THREE;
+  try { THREE=await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js'); }
+  catch(e) { detail.textContent='The 3D library could not load. Connections: prepared microSD → card slot; micro-USB supply → PWR IN.'; return; }
+  let renderer;
+  try { renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true}); }
+  catch(e) { detail.textContent='3D is unavailable in this browser. Connections: prepared microSD → card slot; micro-USB supply → PWR IN.'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(36,1,0.1,800);
+  const light=new THREE.HemisphereLight(0xffffff,0x888888,2.5); scene.add(light);
+  const key=new THREE.DirectionalLight(0xffffff,3); key.position.set(-40,85,65);scene.add(key);
+  const assembly=new THREE.Group();scene.add(assembly);
+  const materials=[];
+  function resolved(token) {
+    const p=document.createElement('span');p.style.color='var('+token+')';root.append(p);
+    const c=getComputedStyle(p).color;p.remove();return c;
+  }
+  function material(token,metalness=0,roughness=.65) {
+    const m=new THREE.MeshStandardMaterial({color:resolved(token),metalness,roughness});
+    m.userData.token=token;materials.push(m);return m;
+  }
+  const pcb=material('--green'),metal=material('--muted-foreground',.7,.3),gold=material('--yellow',.65,.32);
+  const chip=material('--foreground',.1,.7),rubber=material('--foreground',0,.9),ink=material('--background');
+  const powerColor=material('--orange',0,.5),cardColor=material('--blue',0,.6);
+  function box(g,x,y,z,w,h,d,m) { const a=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);a.position.set(x,y,z);g.add(a);return a; }
+  function tube(g,points,r,m) {
+    const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+    const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,44,r,10,false),m);g.add(mesh);return mesh;
+  }
+  function ring(g,x,y,z,r,thickness,m) {
+    const a=new THREE.Mesh(new THREE.TorusGeometry(r,thickness,8,24),m);a.rotation.x=-Math.PI/2;a.position.set(x,y,z);g.add(a);
+  }
+  // Dimensions and connector centers follow the official Zero 2 W drawing.
+  // x is the board's 65 mm length; z is its 30 mm width; +y is component side.
+  const shape=new THREE.Shape(), w=65,d=30,r=3;
+  shape.moveTo(-w/2+r,-d/2);shape.lineTo(w/2-r,-d/2);shape.quadraticCurveTo(w/2,-d/2,w/2,-d/2+r);
+  shape.lineTo(w/2,d/2-r);shape.quadraticCurveTo(w/2,d/2,w/2-r,d/2);shape.lineTo(-w/2+r,d/2);
+  shape.quadraticCurveTo(-w/2,d/2,-w/2,d/2-r);shape.lineTo(-w/2,-d/2+r);shape.quadraticCurveTo(-w/2,-d/2,-w/2+r,-d/2);
+  for(const x of [-29,29])for(const z of [-11.5,11.5]) { const h=new THREE.Path();h.absarc(x,z,1.35,0,Math.PI*2,true);shape.holes.push(h); }
+  for(let i=0;i<20;i++)for(let row=0;row<2;row++) { const h=new THREE.Path();h.absarc(-24.13+i*2.54,-9.1-row*2.54,.48,0,Math.PI*2,true);shape.holes.push(h); }
+  const geom=new THREE.ExtrudeGeometry(shape,{depth:1,bevelEnabled:false});geom.rotateX(Math.PI/2);
+  assembly.add(new THREE.Mesh(geom,pcb));
+  for(let i=0;i<20;i++)for(let row=0;row<2;row++) ring(assembly,-24.13+i*2.54,.09,-9.1-row*2.54,.71,.2,gold);
+  box(assembly,-1,1,0,12,2,12,chip);
+  box(assembly,18,1,-1,9,2,9,metal);
+  box(assembly,-12,1,-6,4,2,3,chip);
+  for(let i=0;i<13;i++){ const x=-18+(i%7)*4,z=4+Math.floor(i/7)*3;box(assembly,x,.55,z,1.6,1,1,metal); }
+  // Open metal sockets: the empty face is the insertion direction.
+  function frontSocket(x,width,depth,height) {
+    box(assembly,x,height,13.4,width,.4,depth,metal);
+    box(assembly,x,.3,13.4,width,.4,depth,metal);
+    box(assembly,x-width/2+.2,height/2,13.4,.4,height,depth,metal);
+    box(assembly,x+width/2-.2,height/2,13.4,.4,height,depth,metal);
+    box(assembly,x,height/2,13.4-depth/2,width,height,.4,metal);
+    box(assembly,x,.9,14,width-1,.4,depth-1,chip);
+  }
+  frontSocket(-20.1,11.2,7.4,3.1); // mini HDMI
+  frontSocket(8.9,7.7,5.5,2.5);    // USB data
+  frontSocket(21.5,7.7,5.5,2.5);   // PWR IN
+  box(assembly,31,1,-1,2,2,17,ink);box(assembly,31.5,1.9,-1,1,1,17,chip);
+  // microSD socket at the left edge, contacts on the board-facing side.
+  box(assembly,-26,2.1,0,13,.4,12.5,metal);
+  box(assembly,-26,.35,-6.05,13,2,.4,metal);box(assembly,-26,.35,6.05,13,2,.4,metal);
+  box(assembly,-19.7,1,0,.4,2,12.5,metal);
+  const card=new THREE.Group();assembly.add(card);
+  box(card,0,.95,0,15,.95,11,cardColor);
+  box(card,-3,1.48,0,6,.04,7,ink);
+  for(let i=0;i<8;i++) box(card,5,.44,-4+i*1.12,4,.05,.7,gold);
+  const plug=new THREE.Group();assembly.add(plug);
+  box(plug,0,1.1,0,6.8,1.65,5.5,metal);
+  box(plug,0,1.1,6.5,9.5,5,8,rubber);
+  for(let i=0;i<4;i++)box(plug,0,1.1,11+i,5-i*.35,3.2,.6,rubber);
+  tube(plug,[[0,1.1,12],[0,1.1,19],[-2,1.1,26],[-6,1.1,32]],1.25,rubber);
+  // A colored collar singles out the power cable while preserving the socket shape.
+  box(plug,0,3.65,6.5,7,.15,3,powerColor);
+  const labels=[];
+  function label(text,position,small=false) {
+    const el=document.createElement('span');el.className='pi-label text-small';el.textContent=text;layer.append(el);
+    labels.push({el,position,small});
+  }
+  label('microSD',()=>new THREE.Vector3(card.position.x,4,-11));
+  label('PWR IN · micro-USB',()=>new THREE.Vector3(plug.position.x+3,6,plug.position.z+13));
+  label('USB · data',()=>new THREE.Vector3(8.9,5,20));
+  label('mini HDMI',()=>new THREE.Vector3(-20.1,5,21),true);
+  label('40 GPIO pads · unused',()=>new THREE.Vector3(0,4,-19),true);
+  let yaw=.15,pitch=.95,distance=132,step=0,progress=0,target=0,last=performance.now();
+  const focus=new THREE.Vector3(-5,0,5);
+  const descriptions=[
+    'Pi board + prepared microSD + 5 V / 2.5 A micro-USB power supply.',
+    'Insert the card with Raspberry Pi OS and Wi-Fi configured; its gold contacts face the board.',
+    'Seat the cable in PWR IN, then plug the supply into the wall. BLE and Wi-Fi are built in.'
+  ];
+  root.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>{
+    step=Number(b.dataset.step);target=step;detail.textContent=descriptions[step];
+    root.querySelectorAll('[data-step]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)progress=target;
+    requestRender();
+  }));
+  root.querySelector('[data-view="top"]').addEventListener('click',()=>{yaw=0;pitch=1.565;requestRender();});
+  root.querySelector('[data-view="angle"]').addEventListener('click',()=>{yaw=.15;pitch=.95;distance=132;requestRender();});
+  let drag=null;
+  canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);canvas.style.cursor='grabbing';});
+  canvas.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-drag.x)*.008;pitch=Math.max(-1.4,Math.min(1.565,pitch+(e.clientY-drag.y)*.008));drag={x:e.clientX,y:e.clientY};requestRender();});
+  function release(){drag=null;canvas.style.cursor='grab';}
+  canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();distance=Math.max(80,Math.min(205,distance+e.deltaY*.06));requestRender();},{passive:false});
+  let width=0,height=0,queued=false;
+  function resize(){width=stage.clientWidth;height=stage.clientHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();requestRender();}
+  new ResizeObserver(resize).observe(stage);
+  function requestRender(){if(!queued){queued=true;requestAnimationFrame(render);}}
+  function render(now){
+    queued=false;const dt=Math.min((now-last)/1000,.05);last=now;
+    if(Math.abs(progress-target)>.001)progress+=(target-progress)*Math.min(1,dt*7);else progress=target;
+    const c=Math.min(progress,1),p=Math.max(0,progress-1);
+    card.position.x=-52+24*c;plug.position.set(21.5,0,34-18*p);
+    const fitting=width<500?1.28:1;
+    camera.position.set(focus.x+Math.sin(yaw)*Math.cos(pitch)*distance*fitting,Math.sin(pitch)*distance*fitting,focus.z+Math.cos(yaw)*Math.cos(pitch)*distance*fitting);
+    camera.lookAt(focus);camera.updateMatrixWorld();renderer.render(scene,camera);
+    const occupied=[];
+    for(const l of labels){
+      const v=l.position().project(camera),x=(v.x*.5+.5)*width,y=(-v.y*.5+.5)*height;
+      const ew=l.el.offsetWidth||130,eh=l.el.offsetHeight||24;
+      let lx=Math.max(ew/2+2,Math.min(width-ew/2-2,x)),ly=Math.max(eh/2+2,Math.min(height-eh/2-2,y));
+      let hide=(l.small&&width<500)||v.z>1;
+      if(!hide)for(let attempt=0;attempt<7;attempt++){
+        const collision=occupied.some(a=>Math.abs(a.x-lx)<(a.w+ew)/2+4&&Math.abs(a.y-ly)<(a.h+eh)/2+4);
+        if(!collision)break;ly+=eh+5;if(ly>height-eh/2){hide=true;break;}
+      }
+      l.el.style.display=hide?'none':'block';l.el.style.left=lx+'px';l.el.style.top=ly+'px';
+      if(!hide)occupied.push({x:lx,y:ly,w:ew,h:eh});
+    }
+    if(progress!==target)requestRender();
+  }
+  function theme(){for(const m of materials)m.color.set(resolved(m.userData.token));requestRender();}
+  new MutationObserver(theme).observe(document.documentElement,{attributes:true,attributeFilter:['class','style','data-theme']});
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',theme);
+  resize();
+})();
+</script>

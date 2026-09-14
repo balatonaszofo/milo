@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name=".automation.DebugNotificationReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.magneticzones.debug.TEST_ALERT" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
