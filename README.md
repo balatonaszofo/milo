@@ -8,9 +8,9 @@ This is an early proof of concept. It is intended as an extra reminder, not as a
 
 ## Implemented
 
-- Sensor Explorer with live magnetometer, accelerometer, gyroscope, orientation, frequency, movement state, timestamp, and a selectable 10-second chart.
+- Sensor Explorer with live phone sensor readings, orientation, sampling frequency, movement state, timestamp, and a selectable 10-second chart.
 - Arbitrary zones, 30-second repeatable training visits, separate raw sessions, and overlapping 2-second windows at 500 ms steps.
-- Axis mean/std/min/max; magnetic magnitude mean/std/min/max/range/percentiles/rate of change; motion magnitude/variance; stationary fraction; pitch/roll statistics.
+- Local feature extraction summarizes sensor readings, motion, and phone orientation for room recognition.
 - Replaceable normalized weighted k-nearest-neighbor classification with a distance-derived Unknown probability.
 - Raw, exponentially smoothed, and active predictions with configurable confidence, dwell, and release hysteresis.
 - Independent timed validation with accuracy, confidence, bad transitions, recognition latency, Unknown time, and repeated history.
@@ -71,9 +71,9 @@ The built APK is at `app/build/outputs/apk/debug/app-debug.apk`.
 1. Enable Developer options and USB debugging, connect the Pixel, approve the computer, and run `adb devices -l`.
 2. Install the debug APK and open **Milo**.
 3. Open **Settings > Sensors** and confirm the four sensors show `available` (rotation vector may be absent on unusual hardware).
-4. Confirm Bx/By/Bz and magnitude change when the phone rotates or approaches metal. Do not validate against one expected magnitude.
+4. Confirm the live sensor readings respond when you move and rotate the phone. Do not validate against one expected reading.
 5. Leave the phone on a stable surface until the UI says `STATIONARY`; pick it up and rotate it to confirm `MOVING`.
-6. Confirm the chart covers roughly ten seconds and Magnitude/X/Y/Z show different traces.
+6. Confirm the chart covers roughly ten seconds and its selectable sensor channels show different traces.
 7. Background and reopen the app. Sampling should pause while backgrounded and resume when visible.
 
 ## First home dataset protocol
@@ -92,4 +92,4 @@ Treat the hypothesis as supported only if independent tests show at least 90% co
 
 ## Evidence boundary
 
-Compilation, lint, APK assembly, and non-hardware unit tests run locally. Real sensor behavior cannot be verified without a connected physical Pixel; an emulator is not a substitute for magnetic fingerprint validation.
+Compilation, lint, APK assembly, and non-hardware unit tests run locally. Real sensor behavior cannot be verified without a connected physical Pixel; an emulator is not a substitute for testing room recognition in the actual home.
